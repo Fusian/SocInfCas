@@ -40,7 +40,7 @@ public class TestNeo {
 			//relationship = firstNode.createRelationshipTo (secondNode, RelTypes.KNOWS);
 			//relationship.setProperty ("messgae", "budwiser");
 			
-			Node foundUser = nodeIndex.get("message", "James").getSingle();
+			Node foundUser = nodeIndex.get("message", "Chris").getSingle();
 			System.out.println (foundUser.getProperty("message"));
 			
 			tx.success();
