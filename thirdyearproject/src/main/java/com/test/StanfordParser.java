@@ -47,7 +47,8 @@ public class StanfordParser {
 			String tempArr[];//holds line once split into from and to
 			String newCheckF = "-1";//used to avoid unneeded indexing
 			String newCheckS = "-1";//ditto
-			
+			String nodenum;
+			String parseNum;
 			//create and set up database
 			GraphDatabaseService graphDB1;
 			graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase ("C:/Users/Fusian/workspace/thirdyearproject/src/main/resources/data");
@@ -72,42 +73,79 @@ public class StanfordParser {
 			//these just count nodes and edges made to ensure they are all created. Cross reference with comments at top of data set.
 			int i = 0;
 			int j =0;
+			int k = 0;
 		
 			//first file pass, reading and creating all nodes with edges going from them
 			while ((strLine = br.readLine()) != null)   {
 				
 				//matt's if to store comments
-				if(strLine.startsWith("#") == true )
+				if(strLine.startsWith("#") == true)
 				{
-					fileComments += strLine + "\n";
+					if (k==0){
+						fileComments += strLine + "\n";
+						if (strLine.contains("Nodes: ")) {
+							k = strLine.indexOf("Nodes: ");
+							nodenum = strLine.substring(k + 7);
+							System.out.println (nodenum);
+							System.out.println (nodenum.startsWith (" "));
+							parseNum = "";
+							while (nodenum.startsWith(" ") == false) {
+								System.out.println ("here");
+								System.out.println (nodenum.substring(0, 1));
+								parseNum = parseNum + nodenum.substring(0, 1);
+								nodenum = nodenum.substring(1);
+							}
+							
+							k = Integer.parseInt(parseNum);
+						}
+						
+						for (i = 0; i < k; i++) {
+							parseNum = Integer.toString (i);
+							Map <String, Object> properties = MapUtil.map( "id", i );
+							fromNode = graphDB.createNode (properties);
+							ids.add (fromNode, properties);
+							
+							System.out.println(i);
+							j++;
+							System.out.println("Making node:" + j);
+						}
+						ids.flush();
+						j = 0;
+					}
 				}
 				else//now we move onto the meat
 				{
 					tempArr = strLine.split("\t");//split the line
-					if (!newCheckF.equals(tempArr[0])) {//checks if we moved onto to a new node
-							newCheckF = tempArr[0];
-							Map <String, Object> properties = MapUtil.map( "id", tempArr[0] );//this makes the id property for the node
-							fromNode = graphDB.createNode( properties );//creates node
-							ids.add( fromNode, properties );//indexes
-							
-							//just some sanity check printlines
-							System.out.println(tempArr[0]);
-							j++;
-							System.out.println("Making node:" + j);
+					if (newCheckF != tempArr[0] ) {
+						fromNode = ids.get("id", Integer.parseInt(tempArr[0])).getSingle();
+						newCheckF = tempArr[0];
 					}
+					
+					//does the same for tonode.
+					if (newCheckS != tempArr[1] ) {
+						toNode = ids.get("id", Integer.parseInt(tempArr[1])).getSingle();
+						newCheckS = tempArr[1];
+					}
+					
+					//creates the relationship
+					graphDB.createRelationship( fromNode, toNode, mailed, null );
+					
+					//tracking printlines
+					j++;
+					System.out.println ("Making: " + j);
 				}
 			}
 			
-			ids.flush();//this adds all nodes indexed so we can use them later. must be done sparsely
+			//this adds all nodes indexed so we can use them later. must be done sparsely
 			
 			//reset file reader:
 			in.close();
-			fstream = new FileInputStream(filePath);
+			/*fstream = new FileInputStream(filePath);
 			in = new DataInputStream(fstream);
-			br = new BufferedReader(new InputStreamReader(in));
+			br = new BufferedReader(new InputStreamReader(in));*/
 			
 			//now we add any 'to nodes' that weren't added in the first pass:
-			while ((strLine = br.readLine()) != null)   {
+			/*while ((strLine = br.readLine()) != null)   {
 				if (strLine.startsWith ("#") == false){//makes sure its not a comment
 					tempArr = strLine.split("\t");
 					
@@ -123,25 +161,32 @@ public class StanfordParser {
 						//some tracking print lines
 						System.out.println(tempArr[1]);
 						j++;
-						System.out.println("Making node:" + j);
+						k++;
+						System.out.println("Making node:" + k);
 						
 						//adds node to temp index, and sets newCheckS, which is used later.
 						dest.add(tempArr[1]);
 						newCheckS = tempArr[1];
+						
+						if (dest.size() == 20000) {
+							dest.clear();
+							ids.flush();
+							k =0;
+						}
 					}
 				}
-			}
+			}*/
 			
 			//we flush, free up the mem of the array list, and reset the reader.
-			ids.flush();
-			dest.clear();
-			in.close();
-			fstream = new FileInputStream(filePath);
+			//ids.flush();
+			//dest.clear();
+			//in.close();
+			/*fstream = new FileInputStream(filePath);
 			in = new DataInputStream(fstream);
 			br = new BufferedReader(new InputStreamReader(in));
-			
+			*/
 			//now we pass through and create edges
-			while ((strLine = br.readLine()) != null)   {
+			/*while ((strLine = br.readLine()) != null)   {
 				if (strLine.startsWith ("#") == false){//makes sure we're not reading a comment
 					
 					tempArr = strLine.split("\t");
@@ -166,10 +211,10 @@ public class StanfordParser {
 					i++;
 					System.out.println ("Making: " + i);
 				}
-			}
+			}*/
 			
 			//close the stream, indexer and database.
-			in.close();
+			//in.close();
 			indexProvider.shutdown();
 			graphDB.shutdown();
 			
