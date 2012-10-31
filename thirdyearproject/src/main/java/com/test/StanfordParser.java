@@ -51,7 +51,7 @@ public class StanfordParser {
 			String parseNum;
 			//create and set up database
 			GraphDatabaseService graphDB1;
-			graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase ("C:/Users/Fusian/workspace/thirdyearproject/src/main/resources/data");
+			graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase ("C:/Users/Fusian/workspace/thirdyearproject/src/main/resources/data2");
 			registerShutdownHook( graphDB1 );//helps in safe shut down
 			
 			graphDB1.shutdown();//need graph close so batch inserter can access
@@ -63,7 +63,7 @@ public class StanfordParser {
 			
 			//set up relationship type and initilise batch inserter
 			RelationshipType mailed = DynamicRelationshipType.withName( "MAILED" );
-			graphDB = BatchInserters.inserter ("C:/Users/Fusian/workspace/thirdyearproject/src/main/resources/data");
+			graphDB = BatchInserters.inserter ("C:/Users/Fusian/workspace/thirdyearproject/src/main/resources/data2");
 			
 			//set up batch indexer
 			BatchInserterIndexProvider indexProvider = new LuceneBatchInserterIndexProvider( graphDB );
