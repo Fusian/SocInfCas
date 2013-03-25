@@ -1,4 +1,5 @@
 
+
 import gnu.trove.iterator.TLongIterator;
 import gnu.trove.list.linked.TDoubleLinkedList;
 import gnu.trove.list.linked.TLongLinkedList;
@@ -21,11 +22,11 @@ public class InfSpread {
 	
 	InfSpread () { }
 	//Function performs linear threshold cascade on a graph when given a seed set
-	public int linRun (TLongHashSet seeds, String test) {
+	public int linRun (TLongHashSet seeds, String test, GraphDatabaseService graphDB1) {
 		boolean stop = false;//decides if influence run stops
-		GraphDatabaseService graphDB1;
-		graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase (test);
-		registerShutdownHook( graphDB1 );//holds graph
+		//GraphDatabaseService graphDB1;
+		//graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase (test);
+		//registerShutdownHook( graphDB1 );//holds graph
 		TLongIterator seedIt;//goes through nodes
 		Iterator<Relationship> reli;//cycles through edges
 		Node tempNode;//holds current node
@@ -57,15 +58,15 @@ public class InfSpread {
 			
 			while (seedIt.hasNext()) {//check all test nodes
 				tempNode = graphDB1.getNodeById(seedIt.next());
-				System.out.println (tempNode.getId() + " is a neighbour node, and is being tested");
+				//System.out.println (tempNode.getId() + " is a neighbour node, and is being tested");
 				reli = tempNode.getRelationships(Direction.INCOMING).iterator();
 				while (reli.hasNext()) {//check edges for current node
 					follow = reli.next();
 					otherNode = follow.getOtherNode(tempNode);//get other node
-					System.out.println ("checking neighbour " + otherNode.getId());
+					//System.out.println ("checking neighbour " + otherNode.getId());
 					if (seeds.contains(otherNode.getId())) {//is other node in infected set?
 						tTotal= tTotal +(Double)follow.getProperty("weight");//add influence from other node to total
-						System.out.println ("Node " + otherNode.getId() + " has added " + follow.getProperty("weight"));
+						//System.out.println ("Node " + otherNode.getId() + " has added " + follow.getProperty("weight"));
 					}
 				}
 				if (tTotal >= (Double)tempNode.getProperty("weight")) {//threshold has been broken
@@ -79,36 +80,34 @@ public class InfSpread {
 						}
 					}
 					stop = false; // change has occured.
-					System.out.println ("Adding " + tempNode.getId());
+					//System.out.println ("Adding " + tempNode.getId());
 				}
 				tTotal = 0;
 									
 			}
 			
-			System.out.println ("adding new nodes");
+			//System.out.println ("adding new nodes");
 			seeds.addAll(tempSeeds);
 			neighbours.addAll(neighNodes);//remove any infected nodes and add new nodes to test to test set
-			//System.out.println (seeds.size());
+			//-System.out.println (seeds.size());
 			neighbours.removeAll(seeds);
 			tempSeeds.clear();
-			TLongIterator sedt = seeds.iterator();
+			seeds.iterator();
 			
-			while (sedt.hasNext()) {
-				System.out.println (sedt.next());//print out all currently infected nodes
-			}
+	
 			neighNodes.clear();//clear for next interation
 		}
-		graphDB1.shutdown();
+		//graphDB1.shutdown();
 		return seeds.size();//shut down graph and return new size of infected nodes
 	}
 	
 	//Function performs a competitive version of linear threshold - weighted model.
 	//'seeds' should hold all infected nodes regardless of colour.
-	public int linRunWeightedMulti (TLongHashSet seeds, String test, int tracks) {
+	public void linRunWeightedMulti (TLongHashSet seeds, String test, int tracks,GraphDatabaseService graphDB1) {
 		boolean stop = false;//decides if cascade stops
-		GraphDatabaseService graphDB1;
-		graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase (test);
-		registerShutdownHook( graphDB1 );//retrieve graph
+		//GraphDatabaseService graphDB1;
+		//graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase (test);
+		//registerShutdownHook( graphDB1 );//retrieve graph
 		double[] totals = new double [tracks];//holds influence totals for each possible source
 		int colour = 0;//holds colour of influencing node, representing source of influence
 		int i;
@@ -152,12 +151,12 @@ public class InfSpread {
 			
 			while (seedIt.hasNext()) {//cycle through current test set
 				tempNode = graphDB1.getNodeById(seedIt.next());//get next node
-				System.out.println (tempNode.getId() + " is a neighbour node, and is being tested");
+				//System.out.println (tempNode.getId() + " is a neighbour node, and is being tested");
 				reli = tempNode.getRelationships(Direction.INCOMING).iterator();
 				while (reli.hasNext()) {//go through all edges of current node
 					follow = reli.next();//current edge
 					otherNode = follow.getOtherNode(tempNode);//get other node
-					System.out.println ("checking neighbour " + otherNode.getId());
+					//System.out.println ("checking neighbour " + otherNode.getId());
 					if (otherNode.hasProperty("colour") && !neighbours.contains(otherNode.getId())) {//check if other node is infected by a track
 						colour = (Integer)otherNode.getProperty("colour");//retrieve track infecting node
 						totals[colour] = totals[colour] + (Double) follow.getProperty("weight");//increase total of influence for that track
@@ -172,7 +171,7 @@ public class InfSpread {
 					i = 0;
 					while (r > totals[0]) {//cycle through until correct track is reached
 						i++;//add on total for next track
-//						System.out.println ("R equals " + r + ". total[0] is currently: " + totals[0] + ", and i is " + i );
+//						//System.out.println ("R equals " + r + ". total[0] is currently: " + totals[0] + ", and i is " + i );
 						totals[0] = totals[0] + (totals[i]/tTotal);
 						//System.out.println ("R equals " + r + ". total[0] is currently: " + totals[0] + ", and i is " + i );
 
@@ -180,7 +179,7 @@ public class InfSpread {
 					tx = graphDB1.beginTx();
 					//loop exited, i holds value of chosen track
 					tempNode.setProperty("colour", i);//current node now influenced by track i
-					System.out.println ("Node " + tempNode.getId() + " changed to colour " + i);
+					//System.out.println ("Node " + tempNode.getId() + " changed to colour " + i);
 					tx.success();
 					tx.finish();
 					if (i == 0) {seeds.add(tempNode.getId());}//means 'our' track has infected another node
@@ -204,35 +203,33 @@ public class InfSpread {
 				System.gc();//call garbage collector to keep memory consumption low
 			}
 			
-			System.out.println ("adding new nodes");
+			//System.out.println ("adding new nodes");
 			neighbours.addAll(neighNodes);//add new neighbour nodes
 			neighbours.removeAll(infNodes);//remove newly infected nodes
 			
-			System.out.println ("THESE NODES ARE BEING ADDED");
-			System.out.println (infNodes.toString());
-			System.out.println (seeds.size());
+			//System.out.println ("THESE NODES ARE BEING ADDED");
+			//System.out.println (infNodes.toString());
+			//System.out.println (seeds.size());
 			
-			TLongIterator sedt = seeds.iterator();
+			seeds.iterator();
 			
-			while (sedt.hasNext()) {
-				System.out.println (sedt.next());//print all nodes in 'our' seed set
-			}
 			infNodes.clear();
 			neighNodes.clear();//clear temp sets for next node
 		}
-		graphDB1.shutdown();
-		colourKill (test);
-		return seeds.size();//shutdown graph and return size of our set
+		//graphDB1.shutdown();
+		System.out.println ("Weighted Threshold Model returns the following spreads: ");
+		multiResults (tracks, test,true,graphDB1);
+		//colourKill (test,graphDB1);
 	}
 	
 	//Function runs competitive version of linear threshold cascade - multiple thresholds
-	public int linRunMultiThresh (TLongHashSet seeds, String test, int tracks) {
+	public void linRunMultiThresh (TLongHashSet seeds, String test, int tracks,GraphDatabaseService graphDB1) {
 		
-		multiThreshMaker (test, tracks);//graph must be adapted to multi thresholds, and given thresholds for all influence tracks.
+		multiThreshMaker (test, tracks, graphDB1);//graph must be adapted to multi thresholds, and given thresholds for all influence tracks.
 		boolean stop = false;
-		GraphDatabaseService graphDB1;
-		graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase (test);
-		registerShutdownHook( graphDB1 );//retrieve new database
+		//GraphDatabaseService graphDB1;
+		//graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase (test);
+		//registerShutdownHook( graphDB1 );//retrieve new database
 		double[] totals = new double [tracks];//holds totals for different tracks
 		int[] posInf = new int [tracks];//holds tracks that may infect node
 		int colour = 0;//holds colour of a node
@@ -245,7 +242,7 @@ public class InfSpread {
 		TLongHashSet infNodes = new TLongHashSet();//holds all infected nodes to be removed from neighbour set
 		TLongHashSet neighbours = new TLongHashSet();//holds nodes to test
 		TLongHashSet neighNodes = new TLongHashSet();//holds additional nodes to be tested next iteration
-		TLongHashSet neighNodesTemp = new TLongHashSet();//holds nodes that may need to be tested next iteration
+		new TLongHashSet();
 		Random rand = new Random();//gens random nums
 		int r = 0;//holds random numbers
 		Transaction tx;
@@ -276,15 +273,15 @@ public class InfSpread {
 			
 			while (seedIt.hasNext()) {//go through all test nodes
 				tempNode = graphDB1.getNodeById(seedIt.next());//get next node
-				System.out.println (tempNode.getId() + " is a neighbour node, and is being tested");
+				//System.out.println (tempNode.getId() + " is a neighbour node, and is being tested");
 				reli = tempNode.getRelationships(Direction.INCOMING).iterator();
 				while (reli.hasNext()) {//cycle through edges for current node
 					follow = reli.next();//next edge
 					otherNode = follow.getOtherNode(tempNode);
-					System.out.println ("checking neighbour " + otherNode.getId());
+					//System.out.println ("checking neighbour " + otherNode.getId());
 					if (otherNode.hasProperty("colour") && !neighbours.contains(otherNode.getId())) {//check if other node is infected, and was infected in a previous step
 						colour = (Integer)otherNode.getProperty("colour");
-						System.out.println ("Has colour " + colour);
+						//System.out.println ("Has colour " + colour);
 						totals[colour] = totals[colour] + (Double) follow.getProperty("weight");//increase correpsonding tracks total by edge weight for this node
 					}
 				}
@@ -294,14 +291,14 @@ public class InfSpread {
 						posInf [i] = j;
 						i++;//add track to possible influencers of node
 					}
-					System.out.println ("Thresh for track " + j + " is " + tempNode.getProperty("weight"+j));
+					//System.out.println ("Thresh for track " + j + " is " + tempNode.getProperty("weight"+j));
 				}
 				
 				if (i > 0) {//more then one track could influence, must pick uniformly at random
 					r = rand.nextInt(i);
 					tx = graphDB1.beginTx();
 					tempNode.setProperty("colour", posInf[r]);//set node to influence by chosen track
-					System.out.println (tempNode.getId() + " now colour " + posInf[r]);
+					//System.out.println (tempNode.getId() + " now colour " + posInf[r]);
 					tx.success();
 					tx.finish();
 					if (posInf[0] == 0) {seeds.add(tempNode.getId());}//add to set of nodes infected by 'us'
@@ -322,31 +319,29 @@ public class InfSpread {
 				}	
 			}
 			
-			System.out.println ("adding new nodes");
+			//System.out.println ("adding new nodes");
 			neighbours.addAll(neighNodes);//add neighbour nodes for testing
 			neighbours.removeAll(infNodes);//remove all infected nodes
-			System.out.println ("THESE NODES ARE BEING ADDED");
-			System.out.println (infNodes.toString());
-			System.out.println (seeds.size());
+			//System.out.println ("THESE NODES ARE BEING ADDED");
+			//System.out.println (infNodes.toString());
+			//System.out.println (seeds.size());
 			
-			TLongIterator sedt = seeds.iterator();
+			seeds.iterator();
 			
-			while (sedt.hasNext()) {
-				System.out.println (sedt.next());
-			}
 			infNodes.clear();
 			neighNodes.clear();//clear sets for next iteration
 		}
-		graphDB1.shutdown();
-		colourKill (test);
-		return seeds.size();
+		//graphDB1.shutdown();
+		System.out.println ("Multiple Threshold Model returns the following spreads: ");
+		multiResults (tracks, test,true,graphDB1);
+		//colourKill (test,graphDB1);
 	}
 	
 	//Function prepares graph for multiple threshold cascades
-	public void multiThreshMaker (String test, int tracks) {
-		GraphDatabaseService graphDB1;
-		graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase (test);
-		registerShutdownHook(graphDB1);//retreive original graph
+	public void multiThreshMaker (String test, int tracks, GraphDatabaseService graphDB1) {
+		//GraphDatabaseService graphDB1;
+		//graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase (test);
+		//registerShutdownHook(graphDB1);//retreive original graph
 		
 		Iterator<Node> nodeIt;//used to cycle through nodes
 		nodeIt = graphDB1.getAllNodes().iterator();
@@ -367,14 +362,14 @@ public class InfSpread {
 		}
 		tx.success();
 		tx.finish();
-		graphDB1.shutdown();
+		//graphDB1.shutdown();
 	}
 	
 	//Function performs independent cascade on graph
-	public int indCas (TLongHashSet seeds, String test) {
+	public int indCas (TLongHashSet seeds, String test, GraphDatabaseService graphDB1) {
 		//double prob = 0.05;
-		GraphDatabaseService graphDB1;
-		graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase (test);//retrieve graph
+		//GraphDatabaseService graphDB1;
+		//graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase (test);//retrieve graph
 		boolean stop = false;//
 		
 		TLongIterator seedIt;
@@ -392,7 +387,7 @@ public class InfSpread {
 			
 			while (seedIt.hasNext()) {//go through all seed nodes and test neighbours
 				tempNode = graphDB1.getNodeById(seedIt.next());
-				System.out.println (tempNode.getId() + " is a seed node and is having it's neighbours tested");
+				//System.out.println (tempNode.getId() + " is a seed node and is having it's neighbours tested");
 				reli = tempNode.getRelationships(Direction.OUTGOING).iterator();
 				
 				while (reli.hasNext()) {//go through every edge of curent node
@@ -407,22 +402,22 @@ public class InfSpread {
 				}
 			}
 			
-			System.out.println ("adding new nodes");
+			//System.out.println ("adding new nodes");
 			seeds.addAll(infNodes);//add newly infected nodes
-			System.out.println ("THESE NODES ARE BEING ADDED");
-			System.out.println (infNodes.toString());
-			System.out.println (seeds.size());
+			//System.out.println ("THESE NODES ARE BEING ADDED");
+			//System.out.println (infNodes.toString());
+			//System.out.println (seeds.size());
 			infNodes.clear();//clear for next pass
 			
 		}
-		graphDB1.shutdown();
+		//graphDB1.shutdown();
 		return seeds.size();
 	}
 	
-	public void waveCas (TLongHashSet seeds, String test, int tracks) {
-		GraphDatabaseService graphDB1;
-		graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase (test);
-		registerShutdownHook( graphDB1 );//retrieve graph
+	public void waveCas (TLongHashSet seeds, String test, int tracks,GraphDatabaseService graphDB1) {
+		//GraphDatabaseService graphDB1;
+		//graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase (test);
+		//registerShutdownHook( graphDB1 );//retrieve graph
 		TLongIterator seedIt;
 		Iterator<Relationship> reli;//cycles through edges
 		Node tempNode;
@@ -462,22 +457,22 @@ public class InfSpread {
 			
 			while (seedIt.hasNext()) {//go through all test nodes
 				tempNode = graphDB1.getNodeById(seedIt.next());//get next node
-				System.out.println (tempNode.getId() + " is a neighbour node, and is being tested");
+				//System.out.println (tempNode.getId() + " is a neighbour node, and is being tested");
 				reli = tempNode.getRelationships(Direction.INCOMING).iterator();
 				while (reli.hasNext()) {//cycle through edges for current node
 					follow = reli.next();//next edge
 					otherNode = follow.getOtherNode(tempNode);
-					System.out.println ("checking neighbour " + otherNode.getId());
+					//System.out.println ("checking neighbour " + otherNode.getId());
 					if (otherNode.hasProperty("colour") && !neighbours.contains(otherNode.getId())) {//check if other node is infected, and was infected in a previous step
 						pressures.add(otherNode.getId());
 					}
 				}
-				System.out.println (pressures.size());
+				//System.out.println (pressures.size());
 				r = rand.nextInt (pressures.size());
 				tx = graphDB1.beginTx();
 				tempNode.setProperty("colour", graphDB1.getNodeById(pressures.get(r)).getProperty("colour"));
 				infNodes.add(tempNode.getId());
-				System.out.println (tempNode.getId() + " now set to colour " + tempNode.getProperty("colour"));
+				//System.out.println (tempNode.getId() + " now set to colour " + tempNode.getProperty("colour"));
 				reli = tempNode.getRelationships(Direction.OUTGOING).iterator();
 				while (reli.hasNext()) {//cycle through edges of current node
 					follow = reli.next();
@@ -490,20 +485,38 @@ public class InfSpread {
 				tx.finish();
 				pressures.clear();
 			}
-			System.out.println ("Next iteration");
-			System.out.println (infNodes.toString());
+			//System.out.println ("Next iteration");
+			//System.out.println (infNodes.toString());
 			neighbours.addAll(neighNodes);
 			neighbours.removeAll(infNodes);
 			infNodes.clear();
 			neighNodes.clear();
+
 		}
+		//graphDB1.shutdown();
+		System.out.println ("Wave Cascade returns the following spreads:");
+		multiResults (tracks,test,true,graphDB1);
 
 	}
-	
-	public void multiLin (double colNum, String test) {
-		GraphDatabaseService graphDB1;
-		graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase (test);
-		registerShutdownHook( graphDB1 );
+	public void changKill (String test,GraphDatabaseService graphDB1) {
+		//GraphDatabaseService graphDB1;
+		//graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase (test);
+		//registerShutdownHook( graphDB1 );
+		
+		Iterator<Node> allNod = graphDB1.getAllNodes().iterator();
+		
+		allNod.next();
+		while (allNod.hasNext()) {
+			allNod.next().removeProperty("change");
+		}
+		//graphDB1.shutdown();
+		
+	}
+	public void multiLin (double colNum, String test, double fullc, int thresh,GraphDatabaseService graphDB1) {
+		changKill(test,graphDB1);
+		//GraphDatabaseService graphDB1;
+		//graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase (test);
+		//registerShutdownHook( graphDB1 );
 		
 		double al = 0.99;
 		double tf = 0.1;
@@ -514,7 +527,6 @@ public class InfSpread {
 		double bound = 0;
 		double consta = be/colNum;
 		double m = 0;
-		double m2 = 0;
 		int chang = 0;
 		double[] prob = new double[(int) colNum];
 		double[] globProb = new double[(int) colNum];
@@ -577,8 +589,8 @@ public class InfSpread {
 		tx.finish();
 		
 		imax = ref.size();
-		System.out.println ("About to make first round of changes");
-		while (m < nodeC/2 || m2 < nodeC-1 ){
+		//System.out.println ("About to make first round of changes");
+		while (m < nodeC*fullc){
 			bound = rand.nextDouble();
 			for (j=0; j<colNum;j++) {
 				prob[j] = 0;
@@ -610,7 +622,7 @@ public class InfSpread {
 				}
 				else {prob[j] = prob[j] + 0.5;}
 			}
-			System.out.println ("wi at " + n.getProperty("wi"));
+			//System.out.println ("wi at " + n.getProperty("wi"));
 			for (j = 0; j< colNum; j++) {
 				//System.out.println ("prob"+j+" is at " + prob[j]);
 				prob[j] = consta + ((1-be)*(prob[j]/(Double)n.getProperty("wi")));
@@ -630,14 +642,15 @@ public class InfSpread {
 			n.setProperty("colour", j);
 			if (!n.hasProperty("change")) {
 				n.setProperty("change",1);
-				m2++;
+				chang = 1;
 			}
 			else {
 				chang = (Integer) n.getProperty("change");
 				chang++;
 				n.setProperty("change", chang);
-				if (chang > 200 && !n.hasProperty("checker")) {m++; n.setProperty("checker", "0");}
+				
 			}
+			if (chang == thresh ) {m++; n.setProperty("checker", "0");}
 			
 			tx.success();
 			tx.finish();
@@ -645,7 +658,7 @@ public class InfSpread {
 			changes.push(j);
 
 			f++;
-			System.out.println ("Iteration " + f + " has values of m at " + m + " and m2 at " +m2);
+			System.out.println ("Iteration " + f + " has values of m at " + m +".(Using i="+fullc+" and size= "+thresh);
 		}
 		int k = 0;
 		while (changes.size() > 0) {
@@ -713,15 +726,16 @@ public class InfSpread {
 			titer = al * titer;
 			System.out.println (titer);
 		}
-		graphDB1.shutdown();
-		
-		multiResults(colNum, test);
+		//graphDB1.shutdown();
+		System.out.println ("Full multi lin returns following spreads:");
+		multiResults(colNum, test, true,graphDB1);
+		colourKill (test,graphDB1);
 	}
 	
-	public static void colourKill (String samper) {
-		GraphDatabaseService graphDB1;
-		graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase (samper);
-		registerShutdownHook( graphDB1 );
+	public static void colourKill (String samper,GraphDatabaseService graphDB1) {
+		//GraphDatabaseService graphDB1;
+		//graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase (samper);
+		//registerShutdownHook( graphDB1 );
 		
 		Iterator<Node> allNod = graphDB1.getAllNodes().iterator();
 		allNod.next();
@@ -737,13 +751,13 @@ public class InfSpread {
 		}
 		tx.success();
 		tx.finish();
-		graphDB1.shutdown();
+		//graphDB1.shutdown();
 	}
 	
-	public static void multiResults (double track, String test) {
-		GraphDatabaseService graphDB1;
-		graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase (test);
-		registerShutdownHook( graphDB1 );
+	public static int[] multiResults (double track, String test, boolean talk,GraphDatabaseService graphDB1) {
+		//GraphDatabaseService graphDB1;
+		//graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase (test);
+		//registerShutdownHook( graphDB1 );
 		
 		int[] counts = new int[(int)track];
 		int j =0;
@@ -769,15 +783,20 @@ public class InfSpread {
 		tx.finish();
 		
 		for (int i = 0; i < track; i++) {
-			System.out.println ("Influence track " + i + " has " + counts[i] + " members.");
-			
-			System.out.println ("Compared to previous: " + graphDB1.getReferenceNode().getProperty("track"+i, 0));
+			if (talk == true) {
+				System.out.println ("Influence track " + i + " has " + counts[i] + " members.");
+				
+				if (graphDB1.getReferenceNode().hasProperty("track"+i)){
+					System.out.println ("Compared to previous: " + graphDB1.getReferenceNode().getProperty("track"+i, 0));
+				}
+			}
 			tx = graphDB1.beginTx();
 			graphDB1.getReferenceNode().setProperty("track"+i, counts[i]);
 			tx.success();
 			tx.finish();
 		}
-		graphDB1.shutdown();
+		return counts;
+		//graphDB1.shutdown();
 	}
 	
 	private static void registerShutdownHook( final GraphDatabaseService graphDb )

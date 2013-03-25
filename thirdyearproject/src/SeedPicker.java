@@ -1,4 +1,7 @@
+
+
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Random;
 
@@ -16,11 +19,11 @@ public class SeedPicker {
 	
 	SeedPicker (){}
 	//type 0 = independent cas, 1 = linear 1/edge num, 2 = normalised, any else = normalised with if
-	public TLongHashSet degDis (String samper, int size, boolean multi, int type) {
+	public TLongHashSet degDis (String samper, int size, boolean multi, int type,GraphDatabaseService graphDB1) {
 		TLongHashSet seeds = new TLongHashSet();//will hold choices
-		GraphDatabaseService graphDB1;
-		graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase (samper);
-		registerShutdownHook(graphDB1);//set up graph
+		//GraphDatabaseService graphDB1;
+		//graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase (samper);
+		//registerShutdownHook(graphDB1);//set up graph
 		Iterator<Node> nodeIt;//used to cycle through nodes
 		Iterator<Relationship> reli;//cycles through edges
 		TLongArrayList nodey = new TLongArrayList();//will store nodes ordered by edge count
@@ -37,9 +40,10 @@ public class SeedPicker {
 		double initial = 0;
 		boolean stop = false;
 		double linp = 0;
+		Random rand = new Random();
 		nodeIt.next();//cycle past reference node
 		
-		System.out.println (type);
+		//System.out.println (type);
 		while (nodeIt.hasNext()) {//go through all nodes
 			start = nodeIt.next();//get next node
 
@@ -92,14 +96,21 @@ public class SeedPicker {
 		}
 		Relationship follow;
 		double out;
-		
+		int ind;
+		double compare = 0;
 		while (seeds.size() < size) {//loop until all nodes needed found
 
-			System.out.println ("nodey: " + nodey.size());
-			seeds.add (nodey.get(0));//add top node to seed set
-			System.out.println ("Adding:" + nodey.get(0));
-			System.out.println ("seedy:" + seeds.size());
-			start = graphDB1.getNodeById(nodey.get(0));//get newly added node
+			//System.out.println ("nodey: " + nodey.size());
+			ind=1;
+			compare = (Double)graphDB1.getNodeById(nodey.get(0)).getProperty("Discount");
+			while ((Double)graphDB1.getNodeById(nodey.get(ind)).getProperty("Discount") == compare)  {
+				ind++;
+			}
+			ind = rand.nextInt(ind);
+			seeds.add (nodey.get(ind));//add top node to seed set
+			//System.out.println ("Adding:" + nodey.get(0));
+			//System.out.println ("seedy:" + seeds.size());
+			start = graphDB1.getNodeById(nodey.get(ind));//get newly added node
 			reli = start.getRelationships().iterator();//get nodes edges
 			tx = graphDB1.beginTx();
 			
@@ -151,7 +162,7 @@ public class SeedPicker {
 					else {//seeds for linear thresh
 						discount = out - ((Integer) end.getProperty ("iN")) - (out*linp);//modify node count 
 					}
-					System.out.println ("Discounting " + end.getId() + " from " +initial+ " to " + discount);
+					//System.out.println ("Discounting " + end.getId() + " from " +initial+ " to " + discount);
 					end.setProperty ("Discount", discount);//set new count
 					nodey.remove(dest);//remove end node from list
 					stop = false;
@@ -174,20 +185,20 @@ public class SeedPicker {
 			tx.success();
 			tx.finish();
 			
-			nodey.removeAt(0);//remove new seed node
+			nodey.removeAt(0+ind);//remove new seed node
 		}
-		graphDB1.shutdown();
-		System.out.println (seeds.toString());
+		//graphDB1.shutdown();
+		//System.out.println (seeds.toString());
 		return seeds;//return seed set
 		
 	}
 	
 	//returns a random set of seeds
-	public TLongHashSet randSeed (String samper, int size) {
+	public TLongHashSet randSeed (String samper, int size,GraphDatabaseService graphDB1) {
 		TLongHashSet seeds = new TLongHashSet();
 		
-		GraphDatabaseService graphDB1;
-		graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase (samper);
+		//GraphDatabaseService graphDB1;
+		//graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase (samper);
 			
 		Random rand = new Random();
 		long pick;
@@ -195,25 +206,25 @@ public class SeedPicker {
 		while (seeds.size()<size){//repeat loop until seed size reached
 			try{
 				pick = rand.nextInt ((int)bound+1);//pick node id at random
-				System.out.println ("picked:" + pick);
-				System.out.println (seeds.size());
+				//System.out.println ("picked:" + pick);
+				//System.out.println (seeds.size());
 				if (graphDB1.getNodeById(pick) != null && pick !=0) {//check if node exists and is not reference node
 					seeds.add(pick);
-					System.out.println (seeds.size());//add node to seed set
+					//System.out.println (seeds.size());//add node to seed set
 				}
 			}
 			catch (Exception e) {
 				
 			}
 		}
-		graphDB1.shutdown();
+		//graphDB1.shutdown();
 		return seeds;
 	}
 	
 	//Colours a graph for use in multi-linear model
-	public void randSeedMultiFull (String samper, int colNum) {
-		GraphDatabaseService graphDB1;
-		graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase (samper);//set up graph
+	public void randSeedMultiFull (String samper, int colNum,GraphDatabaseService graphDB1) {
+		//GraphDatabaseService graphDB1;
+		//graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase (samper);//set up graph
 		Iterator<Node> nodeIt = graphDB1.getAllNodes().iterator();
 		Transaction tx;
 		Random rand = new Random();
@@ -231,13 +242,13 @@ public class SeedPicker {
 		tx.success();
 		tx.finish();
 		
-		graphDB1.shutdown();
-		InfSpread.multiResults(colNum+1, samper);
+		//graphDB1.shutdown();
+		InfSpread.multiResults(colNum+1, samper, false,graphDB1);
 	}
 	
-	public TLongHashSet randSeedMulti (String samper, int colNum, int size) {
-		GraphDatabaseService graphDB1;
-		graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase (samper);//set up graph
+	public TLongHashSet randSeedMulti (String samper, int colNum, int size,GraphDatabaseService graphDB1) {
+		//GraphDatabaseService graphDB1;
+		//graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase (samper);//set up graph
 		Transaction tx;
 		Random rand = new Random();
 		int pick = 0;
@@ -253,38 +264,38 @@ public class SeedPicker {
 			while (tempseeds.size() < size){// go through every node in graph
 				try{
 					pick = rand.nextInt ((int)bound+1);//pick node id at random
-					System.out.println ("picked:" + pick);
-					System.out.println (seeds.size());
+					//System.out.println ("picked:" + pick);
+					//System.out.println (seeds.size());
 					if (graphDB1.getNodeById(pick) != null && !graphDB1.getNodeById(pick).hasProperty("colour") && pick !=0) {//check if node exists and is not reference node
 						tempseeds.add(pick);
 						graphDB1.getNodeById(pick).setProperty("colour", c);
 						i++;
 						if (i == 100000) {i=0;tx.success();tx.finish();tx = graphDB1.beginTx();}
-						System.out.println (seeds.size());//add node to seed set
+						//System.out.println (seeds.size());//add node to seed set
 					}
 				}
 				catch (Exception e) {}
 			}
 			
-			System.out.println ("For colour " + c + " we have: " + tempseeds.toString());
+			//System.out.println ("For colour " + c + " we have: " + tempseeds.toString());
 			seeds.addAll(tempseeds);
 			tempseeds.clear();
 		}
 		tx.success();
 		tx.finish();
 		
-		graphDB1.shutdown();
+		//graphDB1.shutdown();
 		//InfSpread.multiResults(colNum, samper);
 		return seeds;
 	}
 	
 	//set up degree discount for multiple influence tracks when we only want one to be deg dis
-	public void degDisMultiFull (String samper, int size, boolean lin ,int colNum) {
+	public void degDisMultiFull (String samper, int size ,int colNum, int type,GraphDatabaseService graphDB1) {
 		
-		TLongHashSet seeds = degDis (samper, size, lin, true);//gets deg dis seed set for this graph
+		TLongHashSet seeds = degDis (samper, size, true,type, graphDB1);//gets deg dis seed set for this graph
 		
-		GraphDatabaseService graphDB1;
-		graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase (samper);
+		//GraphDatabaseService graphDB1;
+		//graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase (samper);
 		Iterator<Node> nodeIt = graphDB1.getAllNodes().iterator();
 		Transaction tx;
 		Random rand = new Random();
@@ -292,7 +303,7 @@ public class SeedPicker {
 		int j = 0;
 		Node n;
 		colNum--;
-
+		
 		tx = graphDB1.beginTx();
 		int c = 0;
 		while (nodeIt.hasNext()){//cycle through every node
@@ -307,16 +318,16 @@ public class SeedPicker {
 		tx.success();
 		tx.finish();
 		
-		graphDB1.shutdown();
-		InfSpread.multiResults(colNum, samper);
+		//graphDB1.shutdown();
+		InfSpread.multiResults(colNum, samper,false,graphDB1);
 	}
 	
-	public TLongHashSet degDisMulti (String samper, int size, boolean lin ,int colNum) {
+	public TLongHashSet degDisMulti (String samper, int size,int colNum,int type,GraphDatabaseService graphDB1) {
 		
-		TLongHashSet seeds = degDis (samper, size, lin, true);//gets deg dis seed set for this graph
+		TLongHashSet seeds = degDis (samper, size,true, type,graphDB1);//gets deg dis seed set for this graph
 		TLongHashSet tempSeed = new TLongHashSet();
-		GraphDatabaseService graphDB1;
-		graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase (samper);
+		//GraphDatabaseService graphDB1;
+		//graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase (samper);
 		Iterator<Node> nodeIt = graphDB1.getAllNodes().iterator();
 		Transaction tx;
 		Random rand = new Random();
@@ -333,11 +344,11 @@ public class SeedPicker {
 			while (tempSeed.size() < size) {
 				try{
 					j = rand.nextInt ((int)bound+1);//pick node id at random
-					System.out.println ("picked:" + j);
-					System.out.println (seeds.size());
+					//System.out.println ("picked:" + j);
+					//System.out.println (seeds.size());
 					if (!graphDB1.getNodeById(j).hasProperty("colour") && graphDB1.getNodeById(j) != null && j !=0) {//check if node exists and is not reference node
 						tempSeed.add(j);
-						System.out.println (seeds.size());//add node to seed set
+						//System.out.println (seeds.size());//add node to seed set
 						graphDB1.getNodeById(j).setProperty("colour", i);
 						c++;
 						if (c == 100000) {c=0;tx.success();tx.finish();tx = graphDB1.beginTx();}
@@ -347,7 +358,7 @@ public class SeedPicker {
 					
 				}
 			}
-			System.out.println ("Color " + i+ " has " +tempSeed);
+			//System.out.println ("Color " + i+ " has " +tempSeed);
 			seeds.addAll(tempSeed);
 			tempSeed.clear();
 		}
@@ -355,18 +366,19 @@ public class SeedPicker {
 		tx.success();
 		tx.finish();
 		
-		graphDB1.shutdown();
-		InfSpread.multiResults(colNum, samper);
+		//graphDB1.shutdown();
+		InfSpread.multiResults(colNum, samper,false,graphDB1);
 		return seeds;
 	}
 	//Gives seed set of basic max deg/ min deg
 	//if boolean max = true finding max set
-	public TLongHashSet degMaxMin (String samper, int size, boolean max) {
+	public TLongHashSet degMaxMin (String samper, int size, boolean max, GraphDatabaseService graphDB1) {
 		TLongHashSet seeds = new TLongHashSet();//will hold selected nodes
+		TLongArrayList tempseeds = new TLongArrayList();
 		//samper = newGraph(samper);
-		GraphDatabaseService graphDB1;
-		graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase (samper);
-		registerShutdownHook(graphDB1);//graph set up
+		//GraphDatabaseService graphDB1;
+		//graphDB1 = new GraphDatabaseFactory().newEmbeddedDatabase (samper);
+		//registerShutdownHook(graphDB1);//graph set up
 		Iterator<Node> nodeIt;//used to cycle through nodes
 		TLongArrayList nodey = new TLongArrayList();
 		Node start;
@@ -379,9 +391,9 @@ public class SeedPicker {
 		while (nodeIt.hasNext()) {//go through every node
 			start = nodeIt.next();
 			count = (Double) start.getProperty("count");//get count of each node
-			System.out.println ("nodes at " + nodey.size());
+			//System.out.println ("nodes at " + nodey.size());
 			g++;
-			System.out.println ("Nigga we done " + g + " nodes");
+			//System.out.println ("done " + g + " nodes");
 			if (nodey.size() == 0) {//begin list
 				nodey.add(start.getId());
 			}
@@ -397,19 +409,44 @@ public class SeedPicker {
 					}
 				}
 				
-				if (stop == false && nodey.size() < size) {//node goes to end of list
+				if (stop == false && nodey.size() < size*10) {//node goes to end of list
 					nodey.add (start.getId());
 				}
 				
-				if (nodey.size() > size) {//current set is larger then wanted seed size, remove lowest node
-					nodey.removeAt(size);
+				if (nodey.size() > size*10) {//current set is larger then wanted seed size, remove lowest node
+					nodey.removeAt(size*10);
 				}
 				stop = false;
 			}
 		}
+		double compare;
+		double nxt;
+		Random rand = new Random();
+		int j = 0;
+		while (tempseeds.size() < size) {
+			compare = (Double) graphDB1.getNodeById(nodey.get(0)).getProperty("count");
+			nxt = (Double) graphDB1.getNodeById(nodey.get(1)).getProperty("count");
+			i = 1;
+			while (nxt == compare) {
+				nxt = (Double) graphDB1.getNodeById(nodey.get(i)).getProperty("count");
+				i++;
+			}
+			if (tempseeds.size() + i <= size) {
+				tempseeds.addAll(nodey.toArray(0, i));
+				nodey.remove(0, i);
+			}
+			else {
+				while (tempseeds.size() < size) {
+					j = rand.nextInt(i);
+					tempseeds.add(nodey.get(j));
+					nodey.removeAt(j);
+					i--;
+				}
+			}
+		}
 		
-		seeds.addAll(nodey);//add list to seed set
-		graphDB1.shutdown();
+		seeds.addAll(tempseeds);//add list to seed set
+		//graphDB1.shutdown();
 		return seeds;//return seed set
 	}
 	

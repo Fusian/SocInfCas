@@ -1,3 +1,5 @@
+
+
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.FileInputStream;
@@ -32,7 +34,7 @@ public class Parser {
 			FileInputStream fstream = new FileInputStream(filePath);
 			DataInputStream in = new DataInputStream(fstream);
 			BufferedReader br = new BufferedReader (new InputStreamReader(in));
-			TLongHashSet nodes = new TLongHashSet(1000000);//holds id of nodes
+			TLongHashSet nodes = new TLongHashSet();//holds id of nodes
 			String strLine;//holds full line
 			String tempArr[];//holds line once split into from and to
 			//create and set up database
